@@ -229,7 +229,9 @@ class Game_2048:
 
             if bTilesMoved:
                 # we can only spawn a new number if at least a tile was moved
-                self.gameTable[self.spaceToSpawn()].number = self.numero()
+                freeSpace = self.spaceToSpawn()
+                numberToSpawn = self.numero()
+                self.gameTable[freeSpace].number = numberToSpawn
 
                 # we set the number of spaces necessary after each column for
                 # them to be equidistant from each other
@@ -240,6 +242,7 @@ class Game_2048:
 
                 os.system("cls" if os.name == "nt" else "clear")
                 self.printTable()
+                print("{0} was spawned at {1} {2}".format(numberToSpawn, int(freeSpace / self.tableWidth) + 1, (freeSpace % self.tableWidth) + 1))
 
             self.screen.fill(self.COLOR_BLACK)
             pygame.display.flip();
