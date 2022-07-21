@@ -11,16 +11,19 @@ class Game_2048:
     def __init__(self):
         pygame.init()
 
+        # vars for pygame
         self.size = width, height = (1, 1)
         self.COLOR_BLACK = (0, 0, 0)
         self.clock = pygame.time.Clock()
         
-        self.screen = pygame.display.set_mode(self.size)
+        self.screen = pygame.display.set_mode(self.size) # initalising pygame window
 
+        # 2048 table variables
         self.tableWidth = 4
         self.gameTable = [self.Tile(0) for i in range(self.tableWidth ** 2)]
+        
+        # variables to format the console output and make it pretty
         self.columnWidth = 1 # so we can format the output
-
         self.numberColours = {
             0 : "\033[0m",
             2 : "\033[90m",
@@ -36,11 +39,14 @@ class Game_2048:
             2048 : "\033[95m",
         }
 
+    # since the table is a one-dim array, this returns the index 
+    # based on a row and column
     def crd(self, row, col):
         return row * self.tableWidth + col
 
     # the game is over when there are no two values that are the same
     # next to each other horizontally or vertically
+    # and no free spaces remain
     def gameOver(self):
         for i in range(self.tableWidth):
             for j in range(self.tableWidth):
@@ -64,6 +70,8 @@ class Game_2048:
             line = ""
             
             for j in range(self.tableWidth):
+                # formatting it with colour and as many spaces after the number as the largest
+                # existing number in the table would need
                 line += self.numberColours[self.gameTable[self.crd(i, j)].number % 2048] + \
                     str(self.gameTable[self.crd(i, j)].number) + \
                     (self.columnWidth - len(str(self.gameTable[self.crd(i, j)].number)) + 1) * " " + \
@@ -73,7 +81,7 @@ class Game_2048:
 
         print("")
 
-    # getting an index to a free square where we can spawn a number
+    # getting the index of a free square where we can spawn a number
     def spaceToSpawn(self):
         freePlaces = []
 
@@ -91,18 +99,19 @@ class Game_2048:
     def gameLoop(self):
         self.gameTable[self.spaceToSpawn()].number = self.numero()
 
-        # main loop
-
         os.system("cls")
         self.printTable()
 
         while(not self.gameOver()):
-            self.clock.tick(60)
+            self.clock.tick(60) # 60 fps
 
+            # every cell is mergeable at the beginning of the turn
             for i in range(self.tableWidth):
                 for j in range(self.tableWidth):
                     self.gameTable[self.crd(i, j)].bMerged = False
 
+            # important: just because we want to move in a direction, 
+            # it doesn't mean that we CAN - this is set when we did move
             bTilesMoved = False
 
             bLeft = False
@@ -110,6 +119,7 @@ class Game_2048:
             bRight = False
             bDown = False
 
+            # keyboard movement
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit();
@@ -137,7 +147,9 @@ class Game_2048:
                                 bTilesMoved = True
 
                             # if the tile to the left of it has the same number and hasn't yet merged with another tile, we FUSE THEM
-                            if col > 0 and self.gameTable[self.crd(i, col)].number == self.gameTable[self.crd(i, col - 1)].number and not self.gameTable[self.crd(i, col - 1)].bMerged:
+                            if col > 0 and self.gameTable[self.crd(i, col)].number == self.gameTable[self.crd(i, col - 1)].number \
+                                and not self.gameTable[self.crd(i, col - 1)].bMerged:
+                                
                                 self.gameTable[self.crd(i, col - 1)].number *= 2
                                 self.gameTable[self.crd(i, col - 1)].bMerged = True
                                 self.gameTable[self.crd(i, col)].number = 0
@@ -157,7 +169,9 @@ class Game_2048:
                                 bTilesMoved = True
 
                             # if the tile above it has the same number and hasn't yet merged with another tile, we FUSE THEM
-                            if row > 0 and self.gameTable[self.crd(row, j)].number == self.gameTable[self.crd(row - 1, j)].number and not self.gameTable[self.crd(row - 1, j)].bMerged:
+                            if row > 0 and self.gameTable[self.crd(row, j)].number == self.gameTable[self.crd(row - 1, j)].number \
+                                and not self.gameTable[self.crd(row - 1, j)].bMerged:
+                                
                                 self.gameTable[self.crd(row - 1, j)].number *= 2
                                 self.gameTable[self.crd(row - 1, j)].bMerged = True
                                 self.gameTable[self.crd(row, j)].number = 0
@@ -166,6 +180,7 @@ class Game_2048:
             if bRight:
                 reverseCols = [i for i in range(self.tableWidth - 1)]
                 reverseCols.reverse()
+                # we have to look from the last column left (i.e in reverse order) for correct tile movement
                 for i in range(self.tableWidth):
                     for j in reverseCols:
                         # we only move real numbers, zero, you sucker
@@ -179,7 +194,9 @@ class Game_2048:
                                 bTilesMoved = True
 
                             # if the tile to the right of it has the same number and hasn't yet merged with another tile, we FUSE THEM
-                            if col < self.tableWidth - 1 and self.gameTable[self.crd(i, col)].number == self.gameTable[self.crd(i, col + 1)].number and not self.gameTable[self.crd(i, col + 1)].bMerged:
+                            if col < self.tableWidth - 1 and self.gameTable[self.crd(i, col)].number == self.gameTable[self.crd(i, col + 1)].number \
+                                and not self.gameTable[self.crd(i, col + 1)].bMerged:
+                                
                                 self.gameTable[self.crd(i, col + 1)].number *= 2
                                 self.gameTable[self.crd(i, col + 1)].bMerged = True
                                 self.gameTable[self.crd(i, col)].number = 0
@@ -188,7 +205,7 @@ class Game_2048:
             if bDown:
                 reverseRows = [i for i in range(self.tableWidth - 1)]
                 reverseRows.reverse()
-                # we have to look from the last row up for correct tile movement
+                # we have to look from the last row up (i.e in reverse order) for correct tile movement
                 for i in reverseRows:
                     for j in range(self.tableWidth):
                         # we only move real numbers, zero, you sucker
@@ -202,15 +219,20 @@ class Game_2048:
                                 bTilesMoved = True
 
                             # if the tile below it has the same number and hasn't yet merged with another tile, we FUSE THEM
-                            if row < self.tableWidth - 1 and self.gameTable[self.crd(row, j)].number == self.gameTable[self.crd(row + 1, j)].number and not self.gameTable[self.crd(row + 1, j)].bMerged:
+                            if row < self.tableWidth - 1 and self.gameTable[self.crd(row, j)].number == self.gameTable[self.crd(row + 1, j)].number \
+                                and not self.gameTable[self.crd(row + 1, j)].bMerged:
+                                
                                 self.gameTable[self.crd(row + 1, j)].number *= 2
                                 self.gameTable[self.crd(row + 1, j)].bMerged = True
                                 self.gameTable[self.crd(row, j)].number = 0
                                 bTilesMoved = True
 
             if bTilesMoved:
+                # we can only spawn a new number if at least a tile was moved
                 self.gameTable[self.spaceToSpawn()].number = self.numero()
 
+                # we set the number of spaces necessary after each column for
+                # them to be equidistant from each other
                 for i in range(self.tableWidth):
                     for j in range(self.tableWidth):
                         if self.columnWidth < len(str(self.gameTable[self.crd(i, j)].number)):
