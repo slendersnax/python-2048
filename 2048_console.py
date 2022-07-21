@@ -94,11 +94,71 @@ class Game_2048:
     # getting a value/number to spawn
     def numero(self):
         return 2 if (random.randrange(1000) % 9) else 4
+    
+    # evaluating whether we can still move or merge the number in our position
+    # used for moving the tiles
+    def evalPos(self, row, col, rowMod, colMod):
+        return ((rowMod > 0 and row < self.tableWidth - 1) or (rowMod < 0 and row > 0) \
+            or (colMod > 0 and col < self.tableWidth - 1) or (colMod < 0 and col > 0))
+    
+    # moving the tiles
+    # rowMod and colMod can be 1, 0, -1
+    # 1 means that we're moving in the positive direction of that axis (down, right)
+    # -1 means that we're moving in the negative direction of that axis (up, left)
+    # 0 means that we aren't moving on that axis
+    # we add these modifiers to our positions when we move them
+    # we can only move in the four cardinal directions, so one of them is always 0
+    # our position on that axis doesn't get modified so we can merge the for loop
+    # where we move our tiles 
+
+    # rows and cols depend on the direction, e.g we don't have to check the first row
+    # when we move tiles up, since those can't move anyway, and
+    # we check for mergers with the tiles below them
+    # their order also matters e.g when going down it's the last row we don't have to check
+    # not the first one
+    def moveTiles(self, rowMod, colMod, rows, cols):
+        bTilesMoved = False
+        
+        for i in rows:
+            for j in cols:
+                # we only move real numbers, zero, you sucker
+                if self.gameTable[self.crd(i, j)].number > 0:
+                    row = i
+                    col = j
+                    
+                    # only one of these cases is ever relevant, and COINCIDENTALLY
+                    # that's the one we need
+                    eval = self.evalPos(row, col, rowMod, colMod)
+                    
+                    # we move in the direction while there's free space
+                    while eval and self.gameTable[self.crd(row + rowMod, col + colMod)].number == 0:
+                        self.gameTable[self.crd(row + rowMod, col + colMod)].number = self.gameTable[self.crd(row, col)].number
+                        self.gameTable[self.crd(row, col)].number = 0
+                        row += rowMod
+                        col += colMod
+                        bTilesMoved = True
+                        eval = self.evalPos(row, col, rowMod, colMod)
+                    
+                    eval = self.evalPos(row, col, rowMod, colMod)
+                    
+                    # if the tile next to us in the direction we're moving has the same value, they merge
+                    if eval and self.gameTable[self.crd(row, col)].number == self.gameTable[self.crd(row + rowMod, col + colMod)].number \
+                        and not self.gameTable[self.crd(row + rowMod, col + colMod)].bMerged:
+                        
+                        self.gameTable[self.crd(row + rowMod, col + colMod)].number *= 2
+                        self.gameTable[self.crd(row + rowMod, col + colMod)].bMerged = True
+                        self.gameTable[self.crd(row, col)].number = 0
+                        bTilesMoved = True
+        
+        return bTilesMoved
 
     # main gameloop
     def gameLoop(self):
         self.gameTable[self.spaceToSpawn()].number = self.numero()
-
+        # this is the list for rows, cols in reverse order for when we need it
+        axis = [i for i in range(self.tableWidth - 1)]
+        axis.reverse()
+        
         os.system("cls" if os.name == "nt" else "clear")
         self.printTable()
 
@@ -132,103 +192,22 @@ class Game_2048:
                         bRight = True
                     elif event.key == pygame.K_DOWN:
                         bDown = True
-
+            
+            # moving the tiles
             if bLeft:
-                for i in range(self.tableWidth):
-                    for j in range(1, self.tableWidth):
-                        # we only move real numbers, zero, you sucker
-                        if self.gameTable[self.crd(i, j)].number > 0:
-                            col = j
-                            # while there's free space to the left of the tile, we move it to the left
-                            while col > 0 and self.gameTable[self.crd(i, col - 1)].number == 0:
-                                self.gameTable[self.crd(i, col - 1)].number = self.gameTable[self.crd(i, col)].number
-                                self.gameTable[self.crd(i, col)].number = 0
-                                col -= 1
-                                bTilesMoved = True
-
-                            # if the tile to the left of it has the same number and hasn't yet merged with another tile, we FUSE THEM
-                            if col > 0 and self.gameTable[self.crd(i, col)].number == self.gameTable[self.crd(i, col - 1)].number \
-                                and not self.gameTable[self.crd(i, col - 1)].bMerged:
-                                
-                                self.gameTable[self.crd(i, col - 1)].number *= 2
-                                self.gameTable[self.crd(i, col - 1)].bMerged = True
-                                self.gameTable[self.crd(i, col)].number = 0
-                                bTilesMoved = True
+                bTilesMoved = self.moveTiles(0, -1, [i for i in range(self.tableWidth)], [i for i in range(1, self.tableWidth)])
                 
             if bUp:
-                for i in range(1, self.tableWidth):
-                    for j in range(self.tableWidth):
-                        # we only move real numbers, zero, you sucker
-                        if self.gameTable[self.crd(i, j)].number > 0:
-                            row = i
-                            # while there's free space above the tile, we move it up
-                            while row > 0 and self.gameTable[self.crd(row - 1, j)].number == 0:
-                                self.gameTable[self.crd(row - 1, j)].number = self.gameTable[self.crd(row, j)].number
-                                self.gameTable[self.crd(row, j)].number = 0
-                                row -= 1
-                                bTilesMoved = True
-
-                            # if the tile above it has the same number and hasn't yet merged with another tile, we FUSE THEM
-                            if row > 0 and self.gameTable[self.crd(row, j)].number == self.gameTable[self.crd(row - 1, j)].number \
-                                and not self.gameTable[self.crd(row - 1, j)].bMerged:
-                                
-                                self.gameTable[self.crd(row - 1, j)].number *= 2
-                                self.gameTable[self.crd(row - 1, j)].bMerged = True
-                                self.gameTable[self.crd(row, j)].number = 0
-                                bTilesMoved = True
+                bTilesMoved = self.moveTiles(-1, 0, [i for i in range(1, self.tableWidth)], [i for i in range(self.tableWidth)])
             
             if bRight:
-                reverseCols = [i for i in range(self.tableWidth - 1)]
-                reverseCols.reverse()
-                # we have to look from the last column left (i.e in reverse order) for correct tile movement
-                for i in range(self.tableWidth):
-                    for j in reverseCols:
-                        # we only move real numbers, zero, you sucker
-                        if self.gameTable[self.crd(i, j)].number > 0:
-                            col = j
-                            # while there's free space to the right of the tile, we move it to the right
-                            while col < self.tableWidth - 1 and self.gameTable[self.crd(i, col + 1)].number == 0:
-                                self.gameTable[self.crd(i, col + 1)].number = self.gameTable[self.crd(i, col)].number
-                                self.gameTable[self.crd(i, col)].number = 0
-                                col += 1
-                                bTilesMoved = True
-
-                            # if the tile to the right of it has the same number and hasn't yet merged with another tile, we FUSE THEM
-                            if col < self.tableWidth - 1 and self.gameTable[self.crd(i, col)].number == self.gameTable[self.crd(i, col + 1)].number \
-                                and not self.gameTable[self.crd(i, col + 1)].bMerged:
-                                
-                                self.gameTable[self.crd(i, col + 1)].number *= 2
-                                self.gameTable[self.crd(i, col + 1)].bMerged = True
-                                self.gameTable[self.crd(i, col)].number = 0
-                                bTilesMoved = True
+                bTilesMoved = self.moveTiles(0, 1, [i for i in range(self.tableWidth)], axis)
                 
             if bDown:
-                reverseRows = [i for i in range(self.tableWidth - 1)]
-                reverseRows.reverse()
-                # we have to look from the last row up (i.e in reverse order) for correct tile movement
-                for i in reverseRows:
-                    for j in range(self.tableWidth):
-                        # we only move real numbers, zero, you sucker
-                        if self.gameTable[self.crd(i, j)].number > 0:
-                            row = i
-                            # while there's free space below the tile, we move it down
-                            while row < self.tableWidth - 1 and self.gameTable[self.crd(row + 1, j)].number == 0:
-                                self.gameTable[self.crd(row + 1, j)].number = self.gameTable[self.crd(row, j)].number
-                                self.gameTable[self.crd(row, j)].number = 0
-                                row += 1
-                                bTilesMoved = True
-
-                            # if the tile below it has the same number and hasn't yet merged with another tile, we FUSE THEM
-                            if row < self.tableWidth - 1 and self.gameTable[self.crd(row, j)].number == self.gameTable[self.crd(row + 1, j)].number \
-                                and not self.gameTable[self.crd(row + 1, j)].bMerged:
-                                
-                                self.gameTable[self.crd(row + 1, j)].number *= 2
-                                self.gameTable[self.crd(row + 1, j)].bMerged = True
-                                self.gameTable[self.crd(row, j)].number = 0
-                                bTilesMoved = True
+                bTilesMoved = self.moveTiles(1, 0, axis, [i for i in range(self.tableWidth)])
 
             if bTilesMoved:
-                # we can only spawn a new number if at least a tile was moved
+                # we can only spawn a new number if at least one tile was moved
                 freeSpace = self.spaceToSpawn()
                 numberToSpawn = self.numero()
                 self.gameTable[freeSpace].number = numberToSpawn
@@ -248,6 +227,17 @@ class Game_2048:
             pygame.display.flip();
 
         print("game over")
+        
+    def newGame(self):
+        self.gameTable = [self.Tile(0) for i in range(self.tableWidth ** 2)]
+        self.columnWidth = 1
+        self.gameLoop()
 
 newgame = Game_2048()
-newgame.gameLoop()
+
+start = 1
+
+while start:
+    newgame.newGame()
+    print("play again? 1 for yes 0 for no")
+    start = int(input())
