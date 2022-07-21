@@ -99,7 +99,7 @@ class Game_2048:
     def gameLoop(self):
         self.gameTable[self.spaceToSpawn()].number = self.numero()
 
-        os.system("cls")
+        os.system("cls" if os.name == "nt" else "clear")
         self.printTable()
 
         while(not self.gameOver()):
@@ -238,7 +238,7 @@ class Game_2048:
                         if self.columnWidth < len(str(self.gameTable[self.crd(i, j)].number)):
                             self.columnWidth = len(str(self.gameTable[self.crd(i, j)].number))
 
-                os.system("cls")
+                os.system("cls" if os.name == "nt" else "clear")
                 self.printTable()
 
             self.screen.fill(self.COLOR_BLACK)
