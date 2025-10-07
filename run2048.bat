@@ -1,1 +1,0 @@
-python 2048_console.py

@@ -1,6 +1,35 @@
 import random, os
-import pygame, sys
+import sys
 
+# thanks chatGPT
+def getch():
+    """Wait for a single keypress and return it as a string."""
+    try:
+        # Windows
+        import msvcrt
+        ch = msvcrt.getch()
+
+        try:
+            return ch.decode("utf-8") # convert bytes to str
+        except UnicodeDecodeError:
+            return ""
+    except ImportError:
+        # Unix/Linux/Mac
+        import tty, termios
+
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+
+        try:
+            tty.setraw(fd)
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+        return ch
+
+# almost everything below this is the original though lol
+# wonder if I'd do anything differently now
 class Game_2048:
     # inner Tile class so everything is contained
     class Tile:
@@ -9,15 +38,6 @@ class Game_2048:
             self.bMerged = False
 
     def __init__(self):
-        pygame.init()
-
-        # vars for pygame
-        self.size = width, height = (1, 1)
-        self.COLOR_BLACK = (0, 0, 0)
-        self.clock = pygame.time.Clock()
-        
-        self.screen = pygame.display.set_mode(self.size) # initalising pygame window
-
         # 2048 table variables
         self.tableWidth = 4
         self.gameTable = [self.Tile(0) for i in range(self.tableWidth ** 2)]
@@ -163,8 +183,6 @@ class Game_2048:
         self.printTable()
 
         while(not self.gameOver()):
-            self.clock.tick(60) # 60 fps
-
             # every cell is mergeable at the beginning of the turn
             for i in range(self.tableWidth):
                 for j in range(self.tableWidth):
@@ -179,19 +197,18 @@ class Game_2048:
             bRight = False
             bDown = False
 
-            # keyboard movement
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    sys.exit();
-                if event.type == pygame.KEYUP:
-                    if event.key == pygame.K_LEFT:
-                        bLeft = True
-                    elif event.key == pygame.K_UP:
-                        bUp = True
-                    elif event.key == pygame.K_RIGHT:
-                        bRight = True
-                    elif event.key == pygame.K_DOWN:
-                        bDown = True
+            cDir = getch()
+
+            if cDir == "a":
+                bLeft = True
+            elif cDir == "w":
+                bUp = True
+            elif cDir == "d":
+                bRight = True
+            elif cDir == "s":
+                bDown = True
+            elif cDir == "q":
+                sys.exit()
             
             # moving the tiles
             if bLeft:
@@ -223,21 +240,28 @@ class Game_2048:
                 self.printTable()
                 print("{0} was spawned at {1} {2}".format(numberToSpawn, int(freeSpace / self.tableWidth) + 1, (freeSpace % self.tableWidth) + 1))
 
-            self.screen.fill(self.COLOR_BLACK)
-            pygame.display.flip();
-
         print("game over")
         
     def newGame(self):
         self.gameTable = [self.Tile(0) for i in range(self.tableWidth ** 2)]
         self.columnWidth = 1
+
+        print("use wasd to move, q to quit. Press any key to start :)")
+        getch()
+
         self.gameLoop()
 
 newgame = Game_2048()
 
 start = 1
 
-while start:
+while start == 1:
     newgame.newGame()
     print("play again? 1 for yes 0 for no")
-    start = int(input())
+
+    ch = getch()
+
+    try:
+        start = int(ch)
+    except Exception:
+        start = 0
